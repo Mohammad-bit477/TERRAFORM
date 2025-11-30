@@ -1,65 +1,52 @@
 name: Deploy Script to EC2 via SSM
+
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
+
 permissions:
   id-token: write
   contents: read
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    env:
-      REGION: ap-south-1
-      INSTANCE_ID: i-055aaab9a654f2e4c
-      LOG_GROUP: /github-actions/deploy-logs
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      - name: Configure AWS credentials via OIDC
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          role-to-assume: arn:aws:iam::538605215529:role/github
-          aws-region: ${{ env.REGION }}
-      - name: Send deploy script via SSM
-        run: >
-          echo "Sending deploy script to EC2 via SSM..."
+    - name: Checkout code
+      uses: actions/checkout@v3
 
+    - name: Configure AWS credentials via OIDC
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        role-to-assume: arn:aws:iam::538605215529:role/github
+        aws-region: ap-south-1
 
-          # Prepare inline script commands
+    - name: Send deploy script to EC2 via SSM
+      env:
+        INSTANCE_ID: i-055aaab9a654f2e4c
+        LOG_GROUP: /github-actions/deploy-logs
+        REGION: ap-south-1
+      run: |
+        echo "Sending deploy script to EC2 via SSM..."
 
-          SCRIPT=$(cat <<'EOF'
+        # Use JSON array for each line of the script
+        SCRIPT_JSON=$(jq -n \
+          --arg l1 'FILE="/home/ec2-user/project"' \
+          --arg l2 'if [ ! -f "$FILE" ]; then' \
+          --arg l3 '  echo "the is my 1st deployment" > "$FILE"' \
+          --arg l4 'fi' \
+          --arg l5 'chmod +x "$FILE"' \
+          --arg l6 'while true; do' \
+          --arg l7 '  echo "the is my 1st deployment"' \
+          --arg l8 '  sleep 180' \
+          --arg l9 'done' \
+          '$ARGS.positional')
 
-          FILE="/home/ec2-user/project"
-
-
-          if [ ! -f "$FILE" ]; then
-
-          echo "the is my 1st deployment" > "$FILE"
-
-          fi
-
-
-          chmod +x "$FILE"
-
-
-          while true; do
-
-          echo "the is my 1st deployment"
-
-          sleep 180
-
-          done
-
-          EOF
-
-          )
-
-
-          aws ssm send-command \
-            --targets "Key=instanceIds,Values=${INSTANCE_ID}" \
-            --document-name "AWS-RunShellScript" \
-            --comment "Deploy project script inline" \
-            --parameters "commands=[\"$SCRIPT\"]" \
-            --cloud-watch-output-config "{\"CloudWatchOutputEnabled\":true,\"CloudWatchLogGroupName\":\"${LOG_GROUP}\"}" \
-            --region $REGION
+        aws ssm send-command \
+          --targets "Key=instanceIds,Values=${INSTANCE_ID}" \
+          --document-name "AWS-RunShellScript" \
+          --comment "Deploy project script inline" \
+          --parameters commands="$SCRIPT_JSON" \
+          --cloud-watch-output-config "{\"CloudWatchOutputEnabled\":true,\"CloudWatchLogGroupName\":\"${LOG_GROUP}\"}" \
+          --region $REGION

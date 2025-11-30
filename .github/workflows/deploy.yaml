@@ -12,25 +12,41 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
 
+    env:
+      S3_BUCKET: myapp-emexr   
+      SCRIPT_NAME: deploy_script.sh
+      REGION: ap-south-1
+      INSTANCE_ID: i-055aaab9a654f2e4c
+      LOG_GROUP: /github-actions/deploy-logs
+
     steps:
-    
+   
     - name: Checkout code
       uses: actions/checkout@v3
 
-   
+  
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v2
       with:
         role-to-assume: arn:aws:iam::538605215529:role/github
-        aws-region: ap-south-1
+        aws-region: ${{ env.REGION }}
+
+ 
+    - name: Upload script to S3
+      run: |
+        aws s3 cp ${{ env.SCRIPT_NAME }} s3://${{ env.S3_BUCKET }}/${{ env.SCRIPT_NAME }}
 
     
     - name: Deploy to EC2 via SSM
       run: |
         aws ssm send-command \
-          --targets "Key=instanceIds,Values=i-055aaab9a654f2e4c" \
+          --targets "Key=instanceIds,Values=${{ env.INSTANCE_ID }}" \
           --document-name "AWS-RunShellScript" \
           --comment "Deploy project script" \
-          --parameters 'commands=["chmod +x ./deploy_script.sh","./deploy_script.sh"]' \
-          --cloud-watch-output-config '{"CloudWatchOutputEnabled":true,"CloudWatchLogGroupName":"/github-actions/deploy-logs"}' \
-          --region ap-south-1
+          --parameters 'commands=[
+            "aws s3 cp s3://${{ env.S3_BUCKET }}/${{ env.SCRIPT_NAME }} /tmp/${{ env.SCRIPT_NAME }}",
+            "chmod +x /tmp/${{ env.SCRIPT_NAME }}",
+            "/tmp/${{ env.SCRIPT_NAME }}"
+          ]' \
+          --cloud-watch-output-config '{"CloudWatchOutputEnabled":true,"CloudWatchLogGroupName":"${{ env.LOG_GROUP }}"}' \
+          --region ${{ env.REGION }}

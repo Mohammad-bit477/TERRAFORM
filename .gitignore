@@ -2,10 +2,10 @@
 *.tfstate
 *.tfstate.*
 
-# Ignore Terraform crash logs
+# Ignore crash logs
 crash.log
 
-# Ignore .terraform directory
+# Ignore Terraform working directory (providers, modules)
 .terraform/
 
 # Ignore override files
@@ -17,3 +17,7 @@ override.tf.json
 # Ignore CLI configuration files
 .terraformrc
 terraform.rc
+
+# Ignore local IDE settings
+.vscode/
+

@@ -1,4 +1,4 @@
-name: Deploy Script to EC2 (Private)
+name: Deploy Script to EC2
 
 on:
   push:
@@ -13,40 +13,42 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
+      S3_BUCKET: my-deploy-bucket   # Replace with your S3 bucket
+      SCRIPT_NAME: deploy_script.sh
+      REGION: ap-south-1
       INSTANCE_ID: i-055aaab9a654f2e4c
       LOG_GROUP: /github-actions/deploy-logs
-      REGION: ap-south-1
 
     steps:
+    # 1️⃣ Checkout repository
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Configure AWS credentials via OIDC
+    # 2️⃣ Configure AWS credentials via OIDC
+    - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v2
       with:
         role-to-assume: arn:aws:iam::538605215529:role/github
         aws-region: ${{ env.REGION }}
 
-    - name: Run deploy script on EC2 via SSM
+    # 3️⃣ Upload deployment script to S3
+    - name: Upload script to S3
       run: |
-        echo "Sending SSM command with inline script..."
-        
-        # Prepare multi-line script commands
-        SCRIPT_COMMANDS=$(cat <<'EOF'
-           mkdir -p /tmp/deploy_scripts
-           echo "#!/bin/bash" > /tmp/deploy_scripts/deploy.sh
-           echo "echo Hello from deploy script" >> /tmp/deploy_scripts/deploy.sh
-           echo "echo Running additional deployment steps..." >> /tmp/deploy_scripts/deploy.sh
-           chmod +x /tmp/deploy_scripts/deploy.sh
-           /tmp/deploy_scripts/deploy.sh
-          EOF
-        )
+        aws s3 cp ${{ env.SCRIPT_NAME }} s3://${{ env.S3_BUCKET }}/${{ env.SCRIPT_NAME }}
 
-        # Send command via SSM
+    # 4️⃣ Deploy script to EC2 via SSM
+    - name: Deploy to EC2 via SSM
+      run: |
         aws ssm send-command \
-          --targets "Key=instanceIds,Values=${INSTANCE_ID}" \
+          --targets "Key=instanceIds,Values=${{ env.INSTANCE_ID }}" \
           --document-name "AWS-RunShellScript" \
-          --comment "Deploy project script inline" \
-          --parameters "commands=[\"$SCRIPT_COMMANDS\"]" \
-          --cloud-watch-output-config "{\"CloudWatchOutputEnabled\":true,\"CloudWatchLogGroupName\":\"${LOG_GROUP}\"}" \
-          --region $REGION
+          --comment "Deploy project script" \
+          --parameters 'commands=[
+            "aws s3 cp s3://${{ env.S3_BUCKET }}/${{ env.SCRIPT_NAME }} /tmp/${{ env.SCRIPT_NAME }}",
+            "chmod +x /tmp/${{ env.SCRIPT_NAME }}",
+            "/tmp/${{ env.SCRIPT_NAME }}"
+          ]' \
+          --cloud-watch-output-config '{"CloudWatchOutputEnabled":true,"CloudWatchLogGroupName":"${{ env.LOG_GROUP }}"}' \
+          --region ${{ env.REGION }}
+
+

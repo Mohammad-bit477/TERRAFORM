@@ -35,6 +35,7 @@ jobs:
           --document-name "AWS-RunShellScript" \
           --comment "Deploy project script inline" \
           --parameters 'commands=[
+            "mkdir -p /home/ec2-user",
             "FILE=/home/ec2-user/project",
             "if [ ! -f $FILE ]; then",
             "  echo \"the is my 1st deployment\" > $FILE",

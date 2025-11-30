@@ -1,4 +1,4 @@
-name: Deploy Script to EC2
+name: Deploy Script to EC2 (Private)
 
 on:
   push:
@@ -13,9 +13,6 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      S3_BUCKET: myapp-emexr
-      SCRIPT_PATH: ./scripts/deploy.sh
-      SCRIPT_NAME: deploy.sh
       INSTANCE_ID: i-055aaab9a654f2e4c
       LOG_GROUP: /github-actions/deploy-logs
       REGION: ap-south-1
@@ -30,24 +27,26 @@ jobs:
         role-to-assume: arn:aws:iam::538605215529:role/github
         aws-region: ${{ env.REGION }}
 
-    - name: Upload deploy script to S3
-      run: |
-        echo "Uploading deploy script to S3..."
-        ls -l $SCRIPT_PATH
-        aws s3 cp $SCRIPT_PATH s3://$S3_BUCKET/$SCRIPT_NAME
-
     - name: Run deploy script on EC2 via SSM
       run: |
-        echo "Running deploy script via SSM..."
+        echo "Sending SSM command with inline script..."
+        
+        # Prepare multi-line script commands
+        SCRIPT_COMMANDS=$(cat <<'EOF'
+mkdir -p /tmp/deploy_scripts
+echo "#!/bin/bash" > /tmp/deploy_scripts/deploy.sh
+echo "echo Hello from deploy script" >> /tmp/deploy_scripts/deploy.sh
+echo "echo Running additional deployment steps..." >> /tmp/deploy_scripts/deploy.sh
+chmod +x /tmp/deploy_scripts/deploy.sh
+/tmp/deploy_scripts/deploy.sh
+EOF
+        )
+
+        # Send command via SSM
         aws ssm send-command \
           --targets "Key=instanceIds,Values=${INSTANCE_ID}" \
           --document-name "AWS-RunShellScript" \
-          --comment "Deploy project script" \
-          --parameters 'commands=[
-            "mkdir -p /tmp/deploy_scripts",
-            "aws s3 cp s3://'"${S3_BUCKET}"'/'"${SCRIPT_NAME}"' /tmp/deploy_scripts/'"${SCRIPT_NAME}"'",
-            "chmod +x /tmp/deploy_scripts/'"${SCRIPT_NAME}"'",
-            "/tmp/deploy_scripts/'"${SCRIPT_NAME}"'"
-          ]' \
+          --comment "Deploy project script inline" \
+          --parameters "commands=[\"$SCRIPT_COMMANDS\"]" \
           --cloud-watch-output-config "{\"CloudWatchOutputEnabled\":true,\"CloudWatchLogGroupName\":\"${LOG_GROUP}\"}" \
           --region $REGION

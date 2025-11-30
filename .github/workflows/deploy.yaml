@@ -33,13 +33,13 @@ jobs:
         
         # Prepare multi-line script commands
         SCRIPT_COMMANDS=$(cat <<'EOF'
-mkdir -p /tmp/deploy_scripts
-echo "#!/bin/bash" > /tmp/deploy_scripts/deploy.sh
-echo "echo Hello from deploy script" >> /tmp/deploy_scripts/deploy.sh
-echo "echo Running additional deployment steps..." >> /tmp/deploy_scripts/deploy.sh
-chmod +x /tmp/deploy_scripts/deploy.sh
-/tmp/deploy_scripts/deploy.sh
-EOF
+           mkdir -p /tmp/deploy_scripts
+           echo "#!/bin/bash" > /tmp/deploy_scripts/deploy.sh
+           echo "echo Hello from deploy script" >> /tmp/deploy_scripts/deploy.sh
+           echo "echo Running additional deployment steps..." >> /tmp/deploy_scripts/deploy.sh
+           chmod +x /tmp/deploy_scripts/deploy.sh
+           /tmp/deploy_scripts/deploy.sh
+          EOF
         )
 
         # Send command via SSM

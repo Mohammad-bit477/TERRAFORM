@@ -30,4 +30,5 @@ jobs:
           --document-name "AWS-RunShellScript" \
           --comment "Deploy project script" \
           --parameters 'commands=["chmod +x ./deploy_script.sh","./deploy_script.sh"]'
+          --cloud-watch-output-config '{"CloudWatchLogGroupName":"/github-actions/deploy-logs","CloudWatchOutputEnabled":true}'
 

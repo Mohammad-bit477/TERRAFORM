@@ -13,32 +13,36 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      S3_BUCKET: myapp-emexr   
-      SCRIPT_NAME: deploy_script.sh
+      S3_BUCKET: myapp-emexr            # Your S3 bucket
+      SCRIPT_PATH: terraform/scripts/deploy.sh
+      SCRIPT_NAME: deploy.sh
       REGION: ap-south-1
       INSTANCE_ID: i-055aaab9a654f2e4c
       LOG_GROUP: /github-actions/deploy-logs
 
     steps:
-   
+    # 1️⃣ Checkout repository
     - name: Checkout code
       uses: actions/checkout@v3
 
-  
+    # 2️⃣ Configure AWS credentials via OIDC
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v2
       with:
         role-to-assume: arn:aws:iam::538605215529:role/github
         aws-region: ${{ env.REGION }}
 
- 
+    # 3️⃣ Upload deployment script to S3
     - name: Upload script to S3
       run: |
-        aws s3 cp ${{ env.SCRIPT_NAME }} s3://${{ env.S3_BUCKET }}/${{ env.SCRIPT_NAME }}
+        echo "Uploading script to S3..."
+        ls -l ${{ env.SCRIPT_PATH }}
+        aws s3 cp ${{ env.SCRIPT_PATH }} s3://${{ env.S3_BUCKET }}/${{ env.SCRIPT_NAME }}
 
-    
+    # 4️⃣ Deploy script to EC2 via SSM
     - name: Deploy to EC2 via SSM
       run: |
+        echo "Sending SSM command..."
         aws ssm send-command \
           --targets "Key=instanceIds,Values=${{ env.INSTANCE_ID }}" \
           --document-name "AWS-RunShellScript" \

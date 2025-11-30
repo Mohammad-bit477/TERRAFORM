@@ -14,7 +14,7 @@ jobs:
 
     env:
       S3_BUCKET: myapp-emexr            # Your S3 bucket
-      SCRIPT_PATH: terraform/scripts/deploy.sh
+      SCRIPT_PATH: ./scripts/deploy.sh
       SCRIPT_NAME: deploy.sh
       REGION: ap-south-1
       INSTANCE_ID: i-055aaab9a654f2e4c

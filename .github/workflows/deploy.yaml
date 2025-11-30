@@ -26,7 +26,7 @@ jobs:
       run: |
       
         aws ssm send-command \
-          --targets "Key=instanceIds,Values=i-08b504df668467167" \
+          --targets "Key=instanceIds,Values=i-055aaab9a654f2e4c" \
           --document-name "AWS-RunShellScript" \
           --comment "Deploy project script" \
           --parameters 'commands=["chmod +x ./deploy_script.sh","./deploy_script.sh"]'

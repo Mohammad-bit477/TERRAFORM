@@ -24,14 +24,11 @@ jobs:
 
     - name: Send script to EC2 via SSM
       run: |
-        INSTANCE_ID=$(aws ec2 describe-instances \
-          --filters "Name=tag:Name,Values=my-ec2" \
-          "Name=instance-state-name,Values=running" \
-          --query "Reservations[0].Instances[0].InstanceId" \
-          --output text)
+        INSTANCE_ID=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=myapp-ssm-ec2" "Name=instance-state-name,Values=running" --query "Reservations[0].Instances[0].InstanceId" --output text)
 
         aws ssm send-command \
           --targets "Key=instanceIds,Values=$INSTANCE_ID" \
           --document-name "AWS-RunShellScript" \
           --comment "Deploy project script" \
           --parameters 'commands=["chmod +x ./deploy_script.sh","./deploy_script.sh"]'
+

@@ -12,45 +12,26 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
 
-    env:
-      S3_BUCKET: myapp-emexr            
-      SCRIPT_PATH: ./scripts/deploy.sh
-      SCRIPT_NAME: deploy.sh
-      REGION: ap-south-1
-      INSTANCE_ID: i-055aaab9a654f2e4c
-      LOG_GROUP: /github-actions/deploy-logs
-
     steps:
-    
     - name: Checkout code
       uses: actions/checkout@v3
 
-    
-    - name: Configure AWS credentials
+    - name: Configure AWS credentials via OIDC
       uses: aws-actions/configure-aws-credentials@v2
       with:
-        role-to-assume: arn:aws:iam::538605215529:role/github
-        aws-region: ${{ env.REGION }}
+        role-to-assume: arn:aws:iam::<AWS_ACCOUNT_ID>:role/github-oidc-deploy-role
+        aws-region: ap-south-1
 
-    
-    - name: Upload script to S3
+    - name: Send script to EC2 via SSM
       run: |
-        echo "Uploading script to S3..."
-        ls -l ${{ env.SCRIPT_PATH }}
-        aws s3 cp ${{ env.SCRIPT_PATH }} s3://${{ env.S3_BUCKET }}/${{ env.SCRIPT_NAME }}
+        INSTANCE_ID=$(aws ec2 describe-instances \
+          --filters "Name=tag:Name,Values=myapp-ssm-ec2" \
+          "Name=instance-state-name,Values=running" \
+          --query "Reservations[0].Instances[0].InstanceId" \
+          --output text)
 
-   
-    - name: Deploy to EC2 via SSM
-      run: |
-        echo "Sending SSM command..."
         aws ssm send-command \
-          --targets "Key=instanceIds,Values=${{ env.INSTANCE_ID }}" \
+          --targets "Key=instanceIds,Values=$INSTANCE_ID" \
           --document-name "AWS-RunShellScript" \
           --comment "Deploy project script" \
-          --parameters 'commands=[
-            "aws s3 cp s3://${{ env.S3_BUCKET }}/${{ env.SCRIPT_NAME }} /tmp/${{ env.SCRIPT_NAME }}",
-            "chmod +x /tmp/${{ env.SCRIPT_NAME }}",
-            "/tmp/${{ env.SCRIPT_NAME }}"
-          ]' \
-          --cloud-watch-output-config '{"CloudWatchOutputEnabled":true,"CloudWatchLogGroupName":"${{ env.LOG_GROUP }}"}' \
-          --region ${{ env.REGION }}
+          --parameters 'commands=["chmod +x ./deploy_script.sh","./deploy_script.sh"]'

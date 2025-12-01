@@ -40,11 +40,11 @@ jobs:
             "if [ ! -f $FILE ]; then",
             "  echo \"the is my 1st deployment\" > $FILE",
             "fi"
-            #"chmod +x $FILE",
-            #"while true; do",
-            #"  echo \"the is my 1st deployment\"",
-            #"  sleep 180",
-            #"done"
+            "chmod +x $FILE",
+            "while true; do",
+            "  echo \"the is my 1st deployment\"",
+            "  sleep 180",
+            "done"
           ]' \
           --cloud-watch-output-config "{\"CloudWatchOutputEnabled\":true,\"CloudWatchLogGroupName\":\"/github-actions/deploy-logs\"}" \
           --region ap-south-1

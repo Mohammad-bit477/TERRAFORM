@@ -38,11 +38,11 @@ jobs:
             "mkdir -p /home/ec2-user",
             "FILE=/home/ec2-user/project",
             "if [ ! -f $FILE ]; then",
-            "  echo \"the is my 1st deployment\" > $FILE",
+            "  echo \"this is my 1st deployment\" > $FILE",
             "fi",
             "chmod +x $FILE",
             "while true; do",
-            "  echo \"the is my 1st deployment\"",
+            "  echo \"this is my 1st deployment\"",
             "  sleep 180",
             "done"
           ]' \

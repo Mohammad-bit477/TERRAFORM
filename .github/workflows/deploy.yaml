@@ -39,7 +39,7 @@ jobs:
             "FILE=/home/ec2-user/project",
             "if [ ! -f $FILE ]; then",
             "  echo \"the is my 1st deployment\" > $FILE",
-            "fi"
+            "fi",
             "chmod +x $FILE",
             "while true; do",
             "  echo \"the is my 1st deployment\"",
